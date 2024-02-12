@@ -44,25 +44,49 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* EquipAction;
 
+	UPROPERTY(EditAnywhere, Category="Input")
+	UInputAction* AttackAction;
 
-	/* Montages */
 	
+	/* Montages */
 	UPROPERTY(EditDefaultsOnly, Category="Montages")
 	UAnimMontage* EquipMontage;
 
-
-	void EquipOrUnEquip();
+	UPROPERTY(EditDefaultsOnly, Category="Montages|Combat")
+	UAnimMontage* AttackMontage;
 	//related to montage
 	FTimerHandle DelayAnim;
 
+
+	
+	
 	
 	/* End montages */
+
+	void EquipOrUnEquip();
+
+	UPROPERTY(EditDefaultsOnly, Category="Montages|Combat")
+	TArray<FName> AttacksArray;
+
+	FName LastAttack;
+	//Mechanics
+	UPROPERTY(EditDefaultsOnly, Category="Combat|Mechanics")
+	float AttackSpeed = 0.5f;
+	
+	FTimerHandle AttackDelay;
+
+	void AttackReset();
+
+	bool bCanAttack = true;
+
+	
 	
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void Sprint();
 	void EndSprint();
 	void Equip();
+	void Attack();
 
 	UPROPERTY(EditDefaultsOnly, Category="Combat")
 	USkeletalMeshComponent* WeaponMesh;

@@ -92,10 +92,10 @@ void ADSCharacter::EquipOrUnEquip()
 	else
 	{
 		WeaponMesh->AttachToComponent(GetMesh(), TransformRules, FName("Weapon"));
+		WeaponMesh->AddLocalOffset(FVector(0.f,-40.f,0.f));
 		bEquippedWeapon = true;
 	}
 }
-
 
 void ADSCharacter::Equip()
 {
@@ -118,9 +118,39 @@ void ADSCharacter::Equip()
 			GetWorld()->GetTimerManager().SetTimer(DelayAnim, this, &ADSCharacter::EquipOrUnEquip, 0.73f, false);
 		}
 	}
+}
 
-	
-	
+void ADSCharacter::AttackReset()
+{
+	bCanAttack = true;
+}
+
+
+void ADSCharacter::Attack()
+{
+	if(bEquippedWeapon && bCanAttack)
+	{
+		bCanAttack = false;
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if(AnimInstance && AttackMontage)
+		{
+			int32 RandNum = FMath::RandRange(0, (AttacksArray.Num() - 1) );
+			
+			/*
+			 * Lowers chance to 1 attack occur 2 times in row
+			 */
+			if(AttacksArray[RandNum] == LastAttack)
+			{
+				RandNum = FMath::RandRange(0, (AttacksArray.Num() - 1) );
+			}
+			
+			AnimInstance->Montage_Play(AttackMontage);
+			AnimInstance->Montage_JumpToSection(AttacksArray[RandNum], AttackMontage);
+			
+			LastAttack = AttacksArray[RandNum];
+		}
+		GetWorld()->GetTimerManager().SetTimer(AttackDelay, this, &ADSCharacter::AttackReset, AttackSpeed, false);	
+	}
 }
 
 // Called every frame
@@ -151,6 +181,7 @@ void ADSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Triggered, this, &ADSCharacter::Sprint);
 		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &ADSCharacter::EndSprint);
 		EnhancedInputComponent->BindAction(EquipAction, ETriggerEvent::Started, this, &ADSCharacter::Equip);
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &ADSCharacter::Attack);
 	}
 }
 
