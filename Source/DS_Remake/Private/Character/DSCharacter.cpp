@@ -22,8 +22,8 @@ ADSCharacter::ADSCharacter()
 	CameraBoom->bUsePawnControlRotation = true;
 
 	/* Weapon */
-	WeaponMesh = CreateDefaultSubobject<UStaticMeshComponent>("WeaponMesh");
-	WeaponMesh->SetupAttachment(GetRootComponent());
+	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>("Weapon");
+	WeaponMesh->SetupAttachment(GetMesh(), FName("BackWeaponSocket"));
 	/*End*/
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>("FollowCamera");
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
@@ -31,6 +31,9 @@ ADSCharacter::ADSCharacter()
 
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->RotationRate = FRotator(0.f, 540.f, 0.f);
+	GetCharacterMovement()->JumpZVelocity = 600.f;
+	GetCharacterMovement()->AirControl = 0.2f;
 	
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 
@@ -66,6 +69,60 @@ void ADSCharacter::Look(const FInputActionValue& Value)
 	AddControllerYawInput(LookAxisVector.X);
 }
 
+void ADSCharacter::Sprint()
+{
+	bIsSprinting = true;
+	GetCharacterMovement()->MaxWalkSpeed = 550.f;
+}
+
+void ADSCharacter::EndSprint()
+{
+	bIsSprinting = false;
+	GetCharacterMovement()->MaxWalkSpeed = 350.f;
+}
+
+void ADSCharacter::EquipOrUnEquip()
+{
+	FAttachmentTransformRules TransformRules(EAttachmentRule::SnapToTarget, true);
+	if(bEquippedWeapon)
+	{
+		WeaponMesh->AttachToComponent(GetMesh(), TransformRules,FName("BackWeaponSocket"));
+		bEquippedWeapon = false;
+	}
+	else
+	{
+		WeaponMesh->AttachToComponent(GetMesh(), TransformRules, FName("Weapon"));
+		bEquippedWeapon = true;
+	}
+}
+
+
+void ADSCharacter::Equip()
+{
+	
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if(AnimInstance != nullptr && EquipMontage != nullptr)
+	{
+		if(!bEquippedWeapon)
+		{
+			AnimInstance->Montage_Play(EquipMontage);
+            AnimInstance->Montage_JumpToSection(FName("Equip"), EquipMontage);
+			
+			GetWorld()->GetTimerManager().SetTimer(DelayAnim, this, &ADSCharacter::EquipOrUnEquip,  0.3f, false);
+		}
+		else
+		{
+			AnimInstance->Montage_Play(EquipMontage);
+            AnimInstance->Montage_JumpToSection(FName("UnEquip"), EquipMontage);
+            
+			GetWorld()->GetTimerManager().SetTimer(DelayAnim, this, &ADSCharacter::EquipOrUnEquip, 0.73f, false);
+		}
+	}
+
+	
+	
+}
+
 // Called every frame
 void ADSCharacter::Tick(float DeltaTime)
 {
@@ -82,7 +139,7 @@ void ADSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	{
 		if(UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 		{
-			Subsystem->AddMappingContext(BlasterContext, 0);
+			Subsystem->AddMappingContext(DSContext, 0);
 		}
 	}
 
@@ -90,7 +147,10 @@ void ADSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	{
 		EnhancedInputComponent->BindAction(MovementAction, ETriggerEvent::Triggered, this, &ADSCharacter::Move);
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ADSCharacter::Look);
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ADSCharacter::Jump);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Triggered, this, &ADSCharacter::Sprint);
+		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &ADSCharacter::EndSprint);
+		EnhancedInputComponent->BindAction(EquipAction, ETriggerEvent::Started, this, &ADSCharacter::Equip);
 	}
 }
 

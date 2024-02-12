@@ -27,7 +27,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY(EditAnywhere, Category="Input")
-	UInputMappingContext* BlasterContext;
+	UInputMappingContext* DSContext;
 
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* MovementAction;
@@ -38,13 +38,41 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* JumpAction;
 
+	UPROPERTY(EditAnywhere, Category="Input")
+	UInputAction* SprintAction;
+	
+	UPROPERTY(EditAnywhere, Category="Input")
+	UInputAction* EquipAction;
+
+
+	/* Montages */
+	
+	UPROPERTY(EditDefaultsOnly, Category="Montages")
+	UAnimMontage* EquipMontage;
+
+
+	void EquipOrUnEquip();
+	//related to montage
+	FTimerHandle DelayAnim;
+
+	
+	/* End montages */
+	
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
+	void Sprint();
+	void EndSprint();
+	void Equip();
 
-	UPROPERTY(EditDefaultsOnly)
-	TObjectPtr<UStaticMeshComponent> WeaponMesh;
+	UPROPERTY(EditDefaultsOnly, Category="Combat")
+	USkeletalMeshComponent* WeaponMesh;
 
 private:
+
+	bool bIsSprinting = false;
+
+	bool bEquippedWeapon = false;
+	
 	UPROPERTY(VisibleAnywhere, Category="Camera")
 	USpringArmComponent* CameraBoom;
 
@@ -57,5 +85,8 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	FORCEINLINE bool GetIsSprinting() const { return bIsSprinting; }
+	FORCEINLINE bool GetWeaponEquipped() const { return bEquippedWeapon; }
 
 };
