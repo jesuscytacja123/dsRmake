@@ -6,9 +6,12 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Camera/CameraComponent.h"
+#include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/HealthComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 // Sets default values
 ADSCharacter::ADSCharacter()
@@ -18,22 +21,65 @@ ADSCharacter::ADSCharacter()
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>("CameraBoom");
 	CameraBoom->SetupAttachment(GetMesh());
-	CameraBoom->TargetArmLength = 350.f;
+	CameraBoom->TargetArmLength = 450.f;
 	CameraBoom->bUsePawnControlRotation = true;
 
 	/* Weapon */
+	
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>("Weapon");
 	WeaponMesh->SetupAttachment(GetMesh(), FName("BackWeaponSocket"));
+	
 	/*End*/
+
+	/* Health Component */
+
+	CharactersCurrentHealth = CharactersMaxHealth;
+	/*-------------------*/
+	
+	
+	/*Weapon Collision Box*/
+
+	CollisionBox = CreateDefaultSubobject<UBoxComponent>("CollisionBox");
+	CollisionBox->SetupAttachment(WeaponMesh);
+	CollisionBox->SetBoxExtent(FVector(5.f,89.f,10.f));
+
+	CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	CollisionBox->SetCollisionResponseToAllChannels(ECR_Overlap);
+	CollisionBox->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+
+	BoxTraceStart = CreateDefaultSubobject<USceneComponent>("BoxTraceStart");
+	BoxTraceStart->SetupAttachment(WeaponMesh);
+	BoxTraceStart->SetRelativeLocation(FVector(0.f,48.f,0.f));
+	
+	BoxTraceEnd = CreateDefaultSubobject<USceneComponent>("BoxTraceEnd");
+	BoxTraceEnd->SetupAttachment(WeaponMesh);
+	BoxTraceEnd->SetRelativeLocation(FVector(0.f,-125.f,0.f));
+	
+	/*End*/
+
+
+	/*Character Mesh Collision Presets*/
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	GetMesh()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+	
+	/*-----------------------------*/
+	
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>("FollowCamera");
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
 
 	bUseControllerRotationYaw = false;
+	
+	// when game begins we WANT TO orient rotation to movement, but locked on target we do not
+	
 	GetCharacterMovement()->bOrientRotationToMovement = true;
+	
+	///////////////////////////
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 540.f, 0.f);
 	GetCharacterMovement()->JumpZVelocity = 600.f;
 	GetCharacterMovement()->AirControl = 0.2f;
+
+	GetCharacterMovement()->MaxWalkSpeed = 450.f;
 	
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 
@@ -41,12 +87,57 @@ ADSCharacter::ADSCharacter()
 
 }
 
+
+
 // Called when the game starts or when spawned
 void ADSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	//CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	
+	CollisionBox->OnComponentBeginOverlap.AddDynamic(this, &ADSCharacter::OnBoxOverlap);
+}
 
+void ADSCharacter::OnBoxOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	const FVector Start = BoxTraceStart->GetComponentLocation();
+	const FVector End = BoxTraceEnd->GetComponentLocation();
+
+	TArray<AActor*> ActorsToIgnore;
+	ActorsToIgnore.Add(this);
+
+	for(AActor* Actor : IgnoreActors)
+	{
+		ActorsToIgnore.AddUnique(Actor);
+	}
+	
+	FHitResult HitResult;
+	
+	UKismetSystemLibrary::BoxTraceSingle(
+		this,
+		Start,
+		End,
+		FVector(5.f,5.f,5.f),
+		BoxTraceStart->GetComponentRotation(),
+		ETraceTypeQuery::TraceTypeQuery1,
+		false,
+		ActorsToIgnore,
+		EDrawDebugTrace::ForDuration,
+		HitResult,
+		true
+		);
+
+
+	if(HitResult.GetActor())
+	{
+		ICombatInterface* CombatInterface = Cast<ICombatInterface>(HitResult.GetActor());
+		if(CombatInterface)
+		{
+			CombatInterface->GetHit();
+		}
+		IgnoreActors.AddUnique(HitResult.GetActor());
+	}
 	
 }
 
@@ -72,13 +163,17 @@ void ADSCharacter::Look(const FInputActionValue& Value)
 void ADSCharacter::Sprint()
 {
 	bIsSprinting = true;
+	/*bUseControllerRotationYaw = false;
+	GetCharacterMovement()->bOrientRotationToMovement = true;*/
 	GetCharacterMovement()->MaxWalkSpeed = 550.f;
 }
 
 void ADSCharacter::EndSprint()
 {
 	bIsSprinting = false;
-	GetCharacterMovement()->MaxWalkSpeed = 350.f;
+	/*bUseControllerRotationYaw = true;
+	GetCharacterMovement()->bOrientRotationToMovement = true;*/
+	GetCharacterMovement()->MaxWalkSpeed = 450.f;
 }
 
 void ADSCharacter::EquipOrUnEquip()
@@ -128,6 +223,7 @@ void ADSCharacter::AttackReset()
 
 void ADSCharacter::Attack()
 {
+	
 	if(bEquippedWeapon && bCanAttack)
 	{
 		bCanAttack = false;
@@ -184,4 +280,46 @@ void ADSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &ADSCharacter::Attack);
 	}
 }
+
+void ADSCharacter::EnableWeaponCollision()
+{
+	CollisionBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		
+}
+
+void ADSCharacter::DisableWeaponCollision()
+{
+	CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	IgnoreActors.Empty();
+	
+}
+
+void ADSCharacter::Die()
+{
+	WeaponMesh->DetachFromComponent(FDetachmentTransformRules(EDetachmentRule::KeepWorld, true));
+
+	WeaponMesh->SetSimulatePhysics(true);
+	WeaponMesh->SetEnableGravity(true);
+	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
+	
+	GetMesh()->SetSimulatePhysics(true);
+	GetMesh()->SetEnableGravity(true);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
+	GetMesh()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+}
+
+
+void ADSCharacter::GetHit()
+{
+	if(CharactersCurrentHealth - Damage > 0.f)
+	{
+		CharactersCurrentHealth = CharactersCurrentHealth - Damage;
+	}
+	else
+	{
+		Die();
+	}	
+	
+}
+
 

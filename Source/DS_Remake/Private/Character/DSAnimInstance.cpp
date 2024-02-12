@@ -4,7 +4,10 @@
 #include "Character/DSAnimInstance.h"
 
 #include "Character/DSCharacter.h"
+#include "Components/BoxComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 void UDSAnimInstance::UpdateAnimationProperties(float DeltaSeconds)
 {
@@ -33,6 +36,11 @@ void UDSAnimInstance::UpdateAnimationProperties(float DeltaSeconds)
 		bIsSprinting = DSCharacter->GetIsSprinting();
 
 		bIsWeaponEquipped = DSCharacter->GetWeaponEquipped();
+
+		const FRotator AimRotation = DSCharacter->GetBaseAimRotation();
+		const FRotator MovementRotation = UKismetMathLibrary::MakeRotFromX(DSCharacter->GetVelocity());
+		
+		MovementOffsetYaw = UKismetMathLibrary::NormalizedDeltaRotator(MovementRotation, AimRotation).Yaw;
 	}
 }
 

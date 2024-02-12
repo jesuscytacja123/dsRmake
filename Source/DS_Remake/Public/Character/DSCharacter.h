@@ -4,24 +4,40 @@
 
 #include "CoreMinimal.h"
 #include "InputActionValue.h"
+#include "Components/HealthComponent.h"
 #include "GameFramework/Character.h"
+#include "Interfaces/CombatInterface.h"
 #include "DSCharacter.generated.h"
 
 
+class UHealthComponent;
+class UBoxComponent;
 class UInputMappingContext;
 class UInputAction;
 class UCameraComponent;
 class USpringArmComponent;
 
 UCLASS()
-class DS_REMAKE_API ADSCharacter : public ACharacter
+class DS_REMAKE_API ADSCharacter : public ACharacter,public ICombatInterface
 {
 	GENERATED_BODY()
 
 public:
 	// Sets default values for this character's properties
 	ADSCharacter();
+	
+	UFUNCTION(BlueprintCallable)
+	void EnableWeaponCollision();
 
+	UFUNCTION(BlueprintCallable)
+	void DisableWeaponCollision();
+
+	/*Combat Interface Functions*/
+
+	virtual void GetHit() override;
+	
+	/*-----------*/
+	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -57,9 +73,6 @@ protected:
 	//related to montage
 	FTimerHandle DelayAnim;
 
-
-	
-	
 	
 	/* End montages */
 
@@ -79,7 +92,45 @@ protected:
 
 	bool bCanAttack = true;
 
+	/* Overlaps */
 	
+	UFUNCTION()
+	void OnBoxOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UPROPERTY(VisibleAnywhere)
+	USceneComponent* BoxTraceStart;
+
+	UPROPERTY(VisibleAnywhere)
+	USceneComponent* BoxTraceEnd;
+
+	/*end*/
+
+	TArray<AActor*> IgnoreActors;
+
+
+
+
+
+
+
+
+
+
+
+	
+
+	/*Health Component*/
+	
+	
+	UPROPERTY(EditDefaultsOnly, Category="Gameplay|Health")
+	float CharactersMaxHealth;
+	
+	float CharactersCurrentHealth;
+
+	UPROPERTY(EditDefaultsOnly, Category="Gameplay|Damage")
+	float Damage = 25.f;
+	/*------------------*/
+
 	
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
@@ -91,8 +142,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Combat")
 	USkeletalMeshComponent* WeaponMesh;
 
+	UPROPERTY(EditDefaultsOnly, Category="Combat")
+	UBoxComponent* CollisionBox;
 private:
-
+	
 	bool bIsSprinting = false;
 
 	bool bEquippedWeapon = false;
@@ -103,6 +156,9 @@ private:
 	UPROPERTY(VisibleAnywhere, Category="Camera")
 	UCameraComponent* FollowCamera;
 
+
+	void Die();
+	
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -112,5 +168,6 @@ public:
 
 	FORCEINLINE bool GetIsSprinting() const { return bIsSprinting; }
 	FORCEINLINE bool GetWeaponEquipped() const { return bEquippedWeapon; }
-
+	FORCEINLINE USkeletalMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
+	FORCEINLINE UBoxComponent* GetCollisionBox() const { return CollisionBox; }
 };

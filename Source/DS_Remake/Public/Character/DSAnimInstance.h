@@ -40,4 +40,11 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Movement", meta = (AllowPrivateAccess = "true"))
 	bool bIsWeaponEquipped;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Movement", meta = (AllowPrivateAccess = "true"))
+	float MovementOffsetYaw;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Movement", meta = (AllowPrivateAccess = "true"))
+	bool bIsTargetLocked = false;
 };
+
