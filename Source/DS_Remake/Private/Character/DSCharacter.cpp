@@ -9,8 +9,11 @@
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/HealthComponent.h"
+#include "Components/SphereComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 
 // Sets default values
@@ -23,18 +26,17 @@ ADSCharacter::ADSCharacter()
 	CameraBoom->SetupAttachment(GetMesh());
 	CameraBoom->TargetArmLength = 450.f;
 	CameraBoom->bUsePawnControlRotation = true;
-
+	CameraBoom->bInheritPitch = true;
+	CameraBoom->bInheritRoll = true;
+	CameraBoom->bInheritYaw = true;
+	CameraBoom->SetRelativeRotation(FRotator(0.f,-45.f, 0.f));
 	/* Weapon */
 	
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>("Weapon");
 	WeaponMesh->SetupAttachment(GetMesh(), FName("BackWeaponSocket"));
 	
 	/*End*/
-
-	/* Health Component */
-
 	
-	/*-------------------*/
 	
 	BoxTraceStart = CreateDefaultSubobject<USceneComponent>("StartTrace");
 	BoxTraceStart->SetupAttachment(WeaponMesh);
@@ -50,7 +52,9 @@ ADSCharacter::ADSCharacter()
 	BoxCollision->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Ignore);
 	/*End*/
 
+	
 
+	
 	/*Character Mesh Collision Presets*/
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	GetMesh()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
@@ -95,6 +99,10 @@ void ADSCharacter::BeginPlay()
 void ADSCharacter::Move(const FInputActionValue& Value)
 {
 	const FVector2D MovementVector = Value.Get<FVector2D>();
+
+	LeftRight = MovementVector.X;
+	ForwardBackward = MovementVector.Y;
+	
 	const FRotator Rotation = Controller->GetControlRotation();
 	const FRotator YawRotation(0.f,Rotation.Yaw, 0.f);
 
@@ -114,16 +122,23 @@ void ADSCharacter::Look(const FInputActionValue& Value)
 void ADSCharacter::Sprint()
 {
 	bIsSprinting = true;
-	/*bUseControllerRotationYaw = false;
-	GetCharacterMovement()->bOrientRotationToMovement = true;*/
+	if(bTargetLocked)
+	{
+		bUseControllerRotationYaw = true;
+		GetCharacterMovement()->bOrientRotationToMovement = false;
+	}
 	GetCharacterMovement()->MaxWalkSpeed = 550.f;
+	
 }
 
 void ADSCharacter::EndSprint()
 {
 	bIsSprinting = false;
-	/*bUseControllerRotationYaw = true;
-	GetCharacterMovement()->bOrientRotationToMovement = true;*/
+	if(bTargetLocked)
+	{
+		bUseControllerRotationYaw = true;
+		GetCharacterMovement()->bOrientRotationToMovement = false;
+	}
 	GetCharacterMovement()->MaxWalkSpeed = 450.f;
 }
 
@@ -170,13 +185,25 @@ void ADSCharacter::AttackReset()
 {
 	bCanAttack = true;
 	IgnoreActors.Empty();
+	if(bWantsToAttack)
+	{
+		bWantsToAttack = false;
+		Attack();
+	}
 }
 
 
 void ADSCharacter::Attack()
 {
-	
-	if(bEquippedWeapon && bCanAttack)
+	if(bCanAttack == false)
+	{
+		bWantsToAttack = true;		
+	}
+	if(bIsRolling == true)
+	{		
+		bWantsToAttack = true;
+	}
+	if(bEquippedWeapon && bCanAttack && !bIsRolling)
 	{
 		bCanAttack = false;
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -197,7 +224,65 @@ void ADSCharacter::Attack()
 			StartTrace();
 			LastAttack = AttacksArray[RandNum];
 		}
+		
 		GetWorld()->GetTimerManager().SetTimer(AttackDelay, this, &ADSCharacter::AttackReset, AttackSpeed, false);	
+	}
+}
+
+void ADSCharacter::LockTarget()
+{
+	if(Target == nullptr && !bTargetLocked)
+	{
+		TArray<AActor*> Actors;
+		
+		const FVector Start = GetActorLocation();
+		
+		const FVector End = Start + (FollowCamera->GetForwardVector() * DistanceToLock);
+		TArray<TEnumAsByte<EObjectTypeQuery>> Types;
+		Types.Add(TArray<TEnumAsByte<EObjectTypeQuery>>::ElementType(ECollisionChannel::ECC_Pawn));
+		TArray<AActor*> ToIgnore;
+		ToIgnore.Add(this);
+		
+		FHitResult Hit;
+		UKismetSystemLibrary::SphereTraceSingleForObjects(
+		this,
+		Start,
+		End,
+		400.f,
+		Types,
+		false,
+		ToIgnore,
+		EDrawDebugTrace::None,
+		Hit,
+		true
+		);
+		
+		if(Hit.bBlockingHit)
+		{
+			if(Cast<ACharacter>(Hit.GetActor()))
+			{
+				Target = Hit.GetActor();
+			}
+		}
+		
+		if(Target != nullptr)
+		{
+			bTargetLocked = true;
+			
+			bUseControllerRotationYaw = true;
+			CameraBoom->bInheritPitch = false;
+			GetCharacterMovement()->bOrientRotationToMovement = false;
+		}
+		
+	}
+	else
+	{
+		Target = nullptr;
+		bTargetLocked = false;
+
+		bUseControllerRotationYaw = false;
+		CameraBoom->bInheritPitch = true;
+		GetCharacterMovement()->bOrientRotationToMovement = true;
 	}
 }
 
@@ -205,7 +290,46 @@ void ADSCharacter::Attack()
 void ADSCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	
+	LookAtSmooth();
+	
+}
 
+void ADSCharacter::LookAtSmooth()
+{
+	
+		
+	if(Target != nullptr && bTargetLocked && !GetCharacterMovement()->IsFalling() && bCanAttack)
+	{
+		ICombatInterface* TargetInterface = Cast<ICombatInterface>(Target);
+		if(TargetInterface->GetIsDead())
+		{
+			Target = nullptr;
+			bTargetLocked = false;
+			bUseControllerRotationYaw = false;
+			CameraBoom->bInheritPitch = false;
+			GetCharacterMovement()->bOrientRotationToMovement = true;
+			
+			return;
+		}
+
+		const FVector ActorLoc = GetActorLocation();
+		const FVector TargetLoc = Target->GetActorLocation();
+		const FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(ActorLoc, TargetLoc);
+		
+		const FRotator SmoothedRotation = FMath::Lerp(GetActorRotation(), LookAtRotation, 40.f * GetWorld()->DeltaTimeSeconds);
+		Controller->SetControlRotation(SmoothedRotation);
+		
+		if((TargetLoc - ActorLoc).Length() > 2 * DistanceToLock)
+		{
+			Target = nullptr;
+			bTargetLocked = false;
+			bUseControllerRotationYaw = false;
+			CameraBoom->bInheritPitch = true;
+			GetCharacterMovement()->bOrientRotationToMovement = true;
+		}
+		
+	}
 }
 
 // Called to bind functionality to input
@@ -225,11 +349,11 @@ void ADSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	{
 		EnhancedInputComponent->BindAction(MovementAction, ETriggerEvent::Triggered, this, &ADSCharacter::Move);
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ADSCharacter::Look);
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Triggered, this, &ADSCharacter::Sprint);
 		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &ADSCharacter::EndSprint);
 		EnhancedInputComponent->BindAction(EquipAction, ETriggerEvent::Started, this, &ADSCharacter::Equip);
 		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &ADSCharacter::Attack);
+		EnhancedInputComponent->BindAction(LockAction,ETriggerEvent::Started, this, &ADSCharacter::LockTarget);
 	}
 }
 
@@ -244,6 +368,11 @@ void ADSCharacter::DisableWeaponCollision()
 	BoxCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	IgnoreActors.Empty();
 	GetWorld()->GetTimerManager().ClearTimer(TraceTimerHandle);
+}
+
+bool ADSCharacter::GetIsDead()
+{
+	return bDead;
 }
 
 void ADSCharacter::StartTrace()
@@ -294,6 +423,7 @@ void ADSCharacter::AttackTrace()
 
 void ADSCharacter::Die()
 {
+	bDead = true;
 	SetLifeSpan(10.f);
 	WeaponMesh->DetachFromComponent(FDetachmentTransformRules(EDetachmentRule::KeepWorld, true));
 	BoxCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -306,7 +436,6 @@ void ADSCharacter::Die()
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
 	GetMesh()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
 }
-
 
 void ADSCharacter::GetHit()
 {

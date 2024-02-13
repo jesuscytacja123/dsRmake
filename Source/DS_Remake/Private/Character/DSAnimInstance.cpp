@@ -37,10 +37,14 @@ void UDSAnimInstance::UpdateAnimationProperties(float DeltaSeconds)
 
 		bIsWeaponEquipped = DSCharacter->GetWeaponEquipped();
 
+		bIsTargetLocked = DSCharacter->GetIsTargetLocked();
+
 		const FRotator AimRotation = DSCharacter->GetBaseAimRotation();
 		const FRotator MovementRotation = UKismetMathLibrary::MakeRotFromX(DSCharacter->GetVelocity());
 		
 		MovementOffsetYaw = UKismetMathLibrary::NormalizedDeltaRotator(MovementRotation, AimRotation).Yaw;
+
+		
 	}
 }
 

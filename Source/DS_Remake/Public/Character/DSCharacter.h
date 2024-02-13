@@ -10,6 +10,7 @@
 #include "DSCharacter.generated.h"
 
 
+class USphereComponent;
 class UHealthComponent;
 class UBoxComponent;
 class UInputMappingContext;
@@ -34,6 +35,7 @@ public:
 
 	/*Combat Interface Functions*/
 
+	virtual bool GetIsDead() override;
 	virtual void GetHit() override;
 	
 	/*-----------*/
@@ -52,7 +54,7 @@ protected:
 	UInputAction* LookAction;
 	
 	UPROPERTY(EditAnywhere, Category="Input")
-	UInputAction* JumpAction;
+	UInputAction* RollAction;
 
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* SprintAction;
@@ -63,6 +65,8 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* AttackAction;
 
+	UPROPERTY(EditAnywhere, Category="Input")
+	UInputAction* LockAction;
 	
 	/* Montages */
 	UPROPERTY(EditDefaultsOnly, Category="Montages")
@@ -70,9 +74,17 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category="Montages|Combat")
 	UAnimMontage* AttackMontage;
+	
+	UPROPERTY(EditDefaultsOnly, Category="Montages|Combat")
+	UAnimMontage* RollMontage;
 	//related to montage
 	FTimerHandle DelayAnim;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float LeftRight;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float ForwardBackward;
 	
 	/* End montages */
 
@@ -106,7 +118,6 @@ protected:
 	/*end*/
 
 	TArray<AActor*> IgnoreActors;
-
 	
 	
 
@@ -128,12 +139,25 @@ protected:
 	void Sprint();
 	void EndSprint();
 	void Equip();
+	
+	UFUNCTION(BlueprintCallable)
 	void Attack();
+	
+	void LockTarget();
 
 	UPROPERTY(EditDefaultsOnly, Category="Combat")
 	USkeletalMeshComponent* WeaponMesh;
 
 private:
+
+
+	bool bDead = false;
+	
+	float DistanceToLock = 800.f;
+	
+	TObjectPtr<AActor> Target;
+	
+	bool bTargetLocked = false;
 	
 	bool bIsSprinting = false;
 
@@ -152,8 +176,19 @@ private:
 	void AttackTrace();
 	
 	void Die();
+
+	void LookAtSmooth();
+
 	
-public:	
+	
+public:
+	
+	UPROPERTY(BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
+	bool bWantsToAttack = false;
+	
+	UPROPERTY(BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
+	bool bIsRolling = false;
+	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
@@ -163,4 +198,11 @@ public:
 	FORCEINLINE bool GetIsSprinting() const { return bIsSprinting; }
 	FORCEINLINE bool GetWeaponEquipped() const { return bEquippedWeapon; }
 	FORCEINLINE USkeletalMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
+	
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE bool GetIsTargetLocked() const { return bTargetLocked; }
+	
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE bool GetbCanAttack() const { return bCanAttack; }
+	
 };
