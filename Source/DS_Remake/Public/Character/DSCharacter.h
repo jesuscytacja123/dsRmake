@@ -92,31 +92,22 @@ protected:
 
 	bool bCanAttack = true;
 
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UBoxComponent> BoxCollision;
+	
 	/* Overlaps */
 	
-	UFUNCTION()
-	void OnBoxOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(EditDefaultsOnly)
 	USceneComponent* BoxTraceStart;
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(EditDefaultsOnly)
 	USceneComponent* BoxTraceEnd;
 
 	/*end*/
 
 	TArray<AActor*> IgnoreActors;
 
-
-
-
-
-
-
-
-
-
-
+	
 	
 
 	/*Health Component*/
@@ -142,8 +133,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Combat")
 	USkeletalMeshComponent* WeaponMesh;
 
-	UPROPERTY(EditDefaultsOnly, Category="Combat")
-	UBoxComponent* CollisionBox;
 private:
 	
 	bool bIsSprinting = false;
@@ -156,7 +145,12 @@ private:
 	UPROPERTY(VisibleAnywhere, Category="Camera")
 	UCameraComponent* FollowCamera;
 
+	void StartTrace();
 
+	FTimerHandle TraceTimerHandle;
+	
+	void AttackTrace();
+	
 	void Die();
 	
 public:	
@@ -169,5 +163,4 @@ public:
 	FORCEINLINE bool GetIsSprinting() const { return bIsSprinting; }
 	FORCEINLINE bool GetWeaponEquipped() const { return bEquippedWeapon; }
 	FORCEINLINE USkeletalMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
-	FORCEINLINE UBoxComponent* GetCollisionBox() const { return CollisionBox; }
 };

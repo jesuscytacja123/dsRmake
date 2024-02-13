@@ -33,28 +33,21 @@ ADSCharacter::ADSCharacter()
 
 	/* Health Component */
 
-	CharactersCurrentHealth = CharactersMaxHealth;
+	
 	/*-------------------*/
 	
+	BoxTraceStart = CreateDefaultSubobject<USceneComponent>("StartTrace");
+	BoxTraceStart->SetupAttachment(WeaponMesh);
+	BoxTraceEnd = CreateDefaultSubobject<USceneComponent>("EndTrace");
+	BoxTraceEnd->SetupAttachment(WeaponMesh);
 	
 	/*Weapon Collision Box*/
 
-	CollisionBox = CreateDefaultSubobject<UBoxComponent>("CollisionBox");
-	CollisionBox->SetupAttachment(WeaponMesh);
-	CollisionBox->SetBoxExtent(FVector(5.f,89.f,10.f));
-
-	CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	CollisionBox->SetCollisionResponseToAllChannels(ECR_Overlap);
-	CollisionBox->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
-
-	BoxTraceStart = CreateDefaultSubobject<USceneComponent>("BoxTraceStart");
-	BoxTraceStart->SetupAttachment(WeaponMesh);
-	BoxTraceStart->SetRelativeLocation(FVector(0.f,48.f,0.f));
-	
-	BoxTraceEnd = CreateDefaultSubobject<USceneComponent>("BoxTraceEnd");
-	BoxTraceEnd->SetupAttachment(WeaponMesh);
-	BoxTraceEnd->SetRelativeLocation(FVector(0.f,-125.f,0.f));
-	
+	BoxCollision = CreateDefaultSubobject<UBoxComponent>("CollideBox");
+	BoxCollision->SetupAttachment(WeaponMesh);
+	BoxCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	BoxCollision->SetCollisionResponseToAllChannels(ECR_Overlap);
+	BoxCollision->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Ignore);
 	/*End*/
 
 
@@ -94,52 +87,10 @@ void ADSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	//CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	
-	CollisionBox->OnComponentBeginOverlap.AddDynamic(this, &ADSCharacter::OnBoxOverlap);
-}
-
-void ADSCharacter::OnBoxOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	const FVector Start = BoxTraceStart->GetComponentLocation();
-	const FVector End = BoxTraceEnd->GetComponentLocation();
-
-	TArray<AActor*> ActorsToIgnore;
-	ActorsToIgnore.Add(this);
-
-	for(AActor* Actor : IgnoreActors)
-	{
-		ActorsToIgnore.AddUnique(Actor);
-	}
-	
-	FHitResult HitResult;
-	
-	UKismetSystemLibrary::BoxTraceSingle(
-		this,
-		Start,
-		End,
-		FVector(5.f,5.f,5.f),
-		BoxTraceStart->GetComponentRotation(),
-		ETraceTypeQuery::TraceTypeQuery1,
-		false,
-		ActorsToIgnore,
-		EDrawDebugTrace::ForDuration,
-		HitResult,
-		true
-		);
-
-
-	if(HitResult.GetActor())
-	{
-		ICombatInterface* CombatInterface = Cast<ICombatInterface>(HitResult.GetActor());
-		if(CombatInterface)
-		{
-			CombatInterface->GetHit();
-		}
-		IgnoreActors.AddUnique(HitResult.GetActor());
-	}
+	CharactersCurrentHealth = CharactersMaxHealth;
 	
 }
+
 
 void ADSCharacter::Move(const FInputActionValue& Value)
 {
@@ -218,6 +169,7 @@ void ADSCharacter::Equip()
 void ADSCharacter::AttackReset()
 {
 	bCanAttack = true;
+	IgnoreActors.Empty();
 }
 
 
@@ -242,7 +194,7 @@ void ADSCharacter::Attack()
 			
 			AnimInstance->Montage_Play(AttackMontage);
 			AnimInstance->Montage_JumpToSection(AttacksArray[RandNum], AttackMontage);
-			
+			StartTrace();
 			LastAttack = AttacksArray[RandNum];
 		}
 		GetWorld()->GetTimerManager().SetTimer(AttackDelay, this, &ADSCharacter::AttackReset, AttackSpeed, false);	
@@ -283,21 +235,71 @@ void ADSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 void ADSCharacter::EnableWeaponCollision()
 {
-	CollisionBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-		
+	BoxCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	IgnoreActors.Empty();	
 }
 
 void ADSCharacter::DisableWeaponCollision()
 {
-	CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	BoxCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	IgnoreActors.Empty();
+	GetWorld()->GetTimerManager().ClearTimer(TraceTimerHandle);
+}
+
+void ADSCharacter::StartTrace()
+{
+	GetWorld()->GetTimerManager().SetTimer(TraceTimerHandle, this ,&ADSCharacter::AttackTrace, 0.1f, true);
+}
+
+void ADSCharacter::AttackTrace()
+{
+	const FVector Start = BoxTraceStart->GetComponentLocation();
+	const FVector End = BoxTraceEnd->GetComponentLocation();
+
+	TArray<AActor*> ActorsToIgnore;
+	ActorsToIgnore.Add(this);
+
+	for(AActor* Actor : IgnoreActors)
+	{
+		ActorsToIgnore.AddUnique(Actor);
+	}
+	
+	FHitResult Hit;
+	
+	UKismetSystemLibrary::SphereTraceSingle(
+		this,
+		Start,
+		End,
+		12.f,
+		ETraceTypeQuery::TraceTypeQuery1,
+		false,
+		ActorsToIgnore,
+		EDrawDebugTrace::ForDuration,
+		Hit,
+		true,
+		FLinearColor::Blue,
+		FLinearColor::Black,
+		0.1f
+		);
+
+	
+		if(Hit.GetActor())
+		{
+			ICombatInterface* CombatInterface = Cast<ICombatInterface>(Hit.GetActor());
+			if(CombatInterface)
+			{
+				CombatInterface->GetHit();
+			}
+			IgnoreActors.AddUnique(Hit.GetActor());
+		}
 	
 }
 
 void ADSCharacter::Die()
 {
+	SetLifeSpan(10.f);
 	WeaponMesh->DetachFromComponent(FDetachmentTransformRules(EDetachmentRule::KeepWorld, true));
-
+	BoxCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	WeaponMesh->SetSimulatePhysics(true);
 	WeaponMesh->SetEnableGravity(true);
 	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
