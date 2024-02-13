@@ -248,7 +248,7 @@ void ADSCharacter::DisableWeaponCollision()
 
 void ADSCharacter::StartTrace()
 {
-	GetWorld()->GetTimerManager().SetTimer(TraceTimerHandle, this ,&ADSCharacter::AttackTrace, 0.1f, true);
+	GetWorld()->GetTimerManager().SetTimer(TraceTimerHandle, this ,&ADSCharacter::AttackTrace, 0.09f, true);
 }
 
 void ADSCharacter::AttackTrace()
@@ -274,12 +274,9 @@ void ADSCharacter::AttackTrace()
 		ETraceTypeQuery::TraceTypeQuery1,
 		false,
 		ActorsToIgnore,
-		EDrawDebugTrace::ForDuration,
+		EDrawDebugTrace::None,
 		Hit,
-		true,
-		FLinearColor::Blue,
-		FLinearColor::Black,
-		0.1f
+		true
 		);
 
 	
