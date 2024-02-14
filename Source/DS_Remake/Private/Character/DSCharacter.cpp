@@ -317,7 +317,7 @@ void ADSCharacter::LookAtSmooth()
 			Target = nullptr;
 			bTargetLocked = false;
 			bUseControllerRotationYaw = false;
-			CameraBoom->bInheritPitch = false;
+			CameraBoom->bInheritPitch = true;
 			GetCharacterMovement()->bOrientRotationToMovement = true;
 			
 			return;
@@ -416,7 +416,7 @@ void ADSCharacter::AttackTrace()
 		TraceTypeQuery1,
 		false,
 		ActorsToIgnore,
-		EDrawDebugTrace::ForDuration,
+		EDrawDebugTrace::None,
 		Hit,
 		true
 		);
@@ -428,6 +428,7 @@ void ADSCharacter::AttackTrace()
 			if(TargetEnemy)
 			{
 				UGameplayStatics::ApplyDamage(TargetEnemy, Damage, Controller, this, UDamageType::StaticClass());
+				UGameplayStatics::SpawnEmitterAtLocation(this, TargetEnemy->GetHitParticles(), Hit.ImpactPoint);
 			}
 			IgnoreActors.AddUnique(Hit.GetActor());
 		}
