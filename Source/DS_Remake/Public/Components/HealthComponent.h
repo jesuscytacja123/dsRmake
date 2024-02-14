@@ -13,19 +13,22 @@ class DS_REMAKE_API UHealthComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:	
-	// Sets default values for this component's properties
 	UHealthComponent();
-
-	
-	float MaxHealth;
-	float Health = MaxHealth;
-protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
-
-public:	
-	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-		
+protected:
+	virtual void BeginPlay() override;
+
+private:
+	// Current Health
+	UPROPERTY(EditAnywhere, Category = "Actor Attributes", meta=(AllowPrivateAccess="true"))
+	float Health;
+
+	UPROPERTY(EditAnywhere, Category = "Actor Attributes", meta=(AllowPrivateAccess="true"))
+	float MaxHealth;
+
+public:
+	float ReceiveDamage(float Damage);
+	float GetHealthPercent() const;
+	bool IsAlive() const;
 };

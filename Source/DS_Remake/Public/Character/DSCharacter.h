@@ -41,6 +41,17 @@ public:
 	/*-----------*/
 	
 protected:
+
+	/*Health Component*/
+
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UHealthComponent> HealthComponent;
+
+	UPROPERTY(EditDefaultsOnly, Category="Gameplay|Damage")
+	float Damage = 25.f;
+	/*------------------*/
+
+	
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
@@ -121,17 +132,7 @@ protected:
 	
 	
 
-	/*Health Component*/
 	
-	
-	UPROPERTY(EditDefaultsOnly, Category="Gameplay|Health")
-	float CharactersMaxHealth;
-	
-	float CharactersCurrentHealth;
-
-	UPROPERTY(EditDefaultsOnly, Category="Gameplay|Damage")
-	float Damage = 25.f;
-	/*------------------*/
 
 	
 	void Move(const FInputActionValue& Value);

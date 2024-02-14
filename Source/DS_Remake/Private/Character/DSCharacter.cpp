@@ -6,10 +6,11 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Camera/CameraComponent.h"
+#include "Character/Enemy/EnemyBase.h"
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/HealthComponent.h"
-#include "Components/SphereComponent.h"
+#include "Engine/CollisionProfile.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -36,6 +37,13 @@ ADSCharacter::ADSCharacter()
 	WeaponMesh->SetupAttachment(GetMesh(), FName("BackWeaponSocket"));
 	
 	/*End*/
+
+	/*Health Component*/
+
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>("HealthComp");
+
+	/*----------------*/
+
 	
 	
 	BoxTraceStart = CreateDefaultSubobject<USceneComponent>("StartTrace");
@@ -91,8 +99,6 @@ void ADSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	CharactersCurrentHealth = CharactersMaxHealth;
-	
 }
 
 
@@ -148,12 +154,14 @@ void ADSCharacter::EquipOrUnEquip()
 	if(bEquippedWeapon)
 	{
 		WeaponMesh->AttachToComponent(GetMesh(), TransformRules,FName("BackWeaponSocket"));
+		DisableWeaponCollision();
 		bEquippedWeapon = false;
 	}
 	else
 	{
 		WeaponMesh->AttachToComponent(GetMesh(), TransformRules, FName("Weapon"));
 		WeaponMesh->AddLocalOffset(FVector(0.f,-40.f,0.f));
+		DisableWeaponCollision();
 		bEquippedWeapon = true;
 	}
 }
@@ -188,6 +196,8 @@ void ADSCharacter::AttackReset()
 	if(bWantsToAttack)
 	{
 		bWantsToAttack = false;
+		DisableWeaponCollision();
+		
 		Attack();
 	}
 }
@@ -301,8 +311,8 @@ void ADSCharacter::LookAtSmooth()
 		
 	if(Target != nullptr && bTargetLocked && !GetCharacterMovement()->IsFalling() && bCanAttack)
 	{
-		ICombatInterface* TargetInterface = Cast<ICombatInterface>(Target);
-		if(TargetInterface->GetIsDead())
+		const AEnemyBase* EnemyTarget = Cast<AEnemyBase>(Target);
+		if(!EnemyTarget->GetIsAlive())
 		{
 			Target = nullptr;
 			bTargetLocked = false;
@@ -377,7 +387,7 @@ bool ADSCharacter::GetIsDead()
 
 void ADSCharacter::StartTrace()
 {
-	GetWorld()->GetTimerManager().SetTimer(TraceTimerHandle, this ,&ADSCharacter::AttackTrace, 0.09f, true);
+	GetWorld()->GetTimerManager().SetTimer(TraceTimerHandle, this ,&ADSCharacter::AttackTrace, 0.01f, true);
 }
 
 void ADSCharacter::AttackTrace()
@@ -394,16 +404,19 @@ void ADSCharacter::AttackTrace()
 	}
 	
 	FHitResult Hit;
+
+	
+	ECollisionChannel Channel = ECollisionChannel::ECC_Pawn;
 	
 	UKismetSystemLibrary::SphereTraceSingle(
 		this,
 		Start,
 		End,
 		12.f,
-		ETraceTypeQuery::TraceTypeQuery1,
+		TraceTypeQuery1,
 		false,
 		ActorsToIgnore,
-		EDrawDebugTrace::None,
+		EDrawDebugTrace::ForDuration,
 		Hit,
 		true
 		);
@@ -411,10 +424,10 @@ void ADSCharacter::AttackTrace()
 	
 		if(Hit.GetActor())
 		{
-			ICombatInterface* CombatInterface = Cast<ICombatInterface>(Hit.GetActor());
-			if(CombatInterface)
+			AEnemyBase* TargetEnemy = Cast<AEnemyBase>(Hit.GetActor());
+			if(TargetEnemy)
 			{
-				CombatInterface->GetHit();
+				UGameplayStatics::ApplyDamage(TargetEnemy, Damage, Controller, this, UDamageType::StaticClass());
 			}
 			IgnoreActors.AddUnique(Hit.GetActor());
 		}
@@ -439,15 +452,10 @@ void ADSCharacter::Die()
 
 void ADSCharacter::GetHit()
 {
-	if(CharactersCurrentHealth - Damage > 0.f)
-	{
-		CharactersCurrentHealth = CharactersCurrentHealth - Damage;
-	}
-	else
+	if(HealthComponent->ReceiveDamage(Damage) <= 0.f)
 	{
 		Die();
-	}	
-	
+	}
 }
 
 

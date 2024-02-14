@@ -46,5 +46,8 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Movement", meta = (AllowPrivateAccess = "true"))
 	bool bIsTargetLocked = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Movement", meta = (AllowPrivateAccess = "true"))
+	float CurrentVelocity;
 };
 

@@ -32,6 +32,7 @@ void UDSAnimInstance::UpdateAnimationProperties(float DeltaSeconds)
 		{
 			bIsAccelerating = false;
 		}
+		CurrentVelocity = DSCharacter->GetCharacterMovement()->Velocity.Length();
 		
 		bIsSprinting = DSCharacter->GetIsSprinting();
 
