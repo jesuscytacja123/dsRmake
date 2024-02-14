@@ -458,4 +458,17 @@ void ADSCharacter::GetHit()
 	}
 }
 
+float ADSCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
+	AActor* DamageCauser)
+{
+	float HealthLeft = HealthComponent->ReceiveDamage(DamageAmount);
+	
+	if(HealthLeft <= 0.f)
+	{
+		Die();
+	}
+
+	return 0.f;
+}
+
 

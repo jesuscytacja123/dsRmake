@@ -39,6 +39,8 @@ public:
 	virtual void GetHit() override;
 	
 	/*-----------*/
+
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 	
 protected:
 
@@ -88,6 +90,11 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category="Montages|Combat")
 	UAnimMontage* RollMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category="Montage|HitReact")
+	UAnimMontage* HitReactMontage;
+
+	
 	//related to montage
 	FTimerHandle DelayAnim;
 
@@ -96,15 +103,18 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float ForwardBackward;
-	
+
+	UPROPERTY(EditDefaultsOnly, Category="Montage|HitReact")
+	TArray<FName> HitReactArray;
+
+	UPROPERTY(EditDefaultsOnly, Category="Montages|Combat")
+	TArray<FName> AttacksArray;
 	/* End montages */
 
 	void EquipOrUnEquip();
 
-	UPROPERTY(EditDefaultsOnly, Category="Montages|Combat")
-	TArray<FName> AttacksArray;
-
 	FName LastAttack;
+	
 	//Mechanics
 	UPROPERTY(EditDefaultsOnly, Category="Combat|Mechanics")
 	float AttackSpeed = 0.5f;
@@ -127,13 +137,6 @@ protected:
 	USceneComponent* BoxTraceEnd;
 
 	/*end*/
-
-	TArray<AActor*> IgnoreActors;
-	
-	
-
-	
-
 	
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
@@ -150,7 +153,7 @@ protected:
 	USkeletalMeshComponent* WeaponMesh;
 
 private:
-
+	TArray<AActor*> IgnoreActors;
 
 	bool bDead = false;
 	
