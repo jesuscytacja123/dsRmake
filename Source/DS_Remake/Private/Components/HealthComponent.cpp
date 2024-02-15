@@ -21,6 +21,17 @@ float UHealthComponent::ReceiveDamage(float Damage)
 	return Health;
 }
 
+float UHealthComponent::DecreaseStamina(float StaminaToDecrease)
+{
+	Stamina = FMath::Clamp(Stamina - StaminaToDecrease, 0.f, MaxStamina);
+	return Stamina;
+}
+
+float UHealthComponent::GetStaminaPercent() const
+{
+	return Stamina / MaxStamina;
+}
+
 float UHealthComponent::GetHealthPercent() const
 {
 	return Health / MaxHealth;
@@ -29,6 +40,21 @@ float UHealthComponent::GetHealthPercent() const
 bool UHealthComponent::IsAlive() const
 {
 	return Health > 0.f;
+}
+
+bool UHealthComponent::HasStamina() const
+{
+	return Stamina > 0.f;
+}
+
+bool UHealthComponent::HasStaminaToAttack() const
+{
+	return Stamina > 25.f;
+}
+
+bool UHealthComponent::HasStaminoToRoll() const
+{
+	return Stamina > 30.f;
 }
 
 void UHealthComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

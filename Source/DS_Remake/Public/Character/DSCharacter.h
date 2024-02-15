@@ -46,11 +46,17 @@ protected:
 
 	/*Health Component*/
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UHealthComponent> HealthComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category="Gameplay|Damage")
 	float Damage = 25.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly,Category="Gameplay|Costs")
+	float AttackCost = 25.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Gameplay|Costs")
+	float RollCost = 30.f;
 	/*------------------*/
 
 	
@@ -208,5 +214,7 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE bool GetbCanAttack() const { return bCanAttack; }
-	
+
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE UHealthComponent* GetHealthComponent() const { return HealthComponent; }
 };

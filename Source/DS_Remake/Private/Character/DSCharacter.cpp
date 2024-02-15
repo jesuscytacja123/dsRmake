@@ -13,6 +13,7 @@
 #include "Engine/CollisionProfile.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "HUD/HealthBarComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -127,6 +128,7 @@ void ADSCharacter::Look(const FInputActionValue& Value)
 
 void ADSCharacter::Sprint()
 {
+	if(!HealthComponent->HasStamina()) return;
 	bIsSprinting = true;
 	if(bTargetLocked)
 	{
@@ -205,6 +207,8 @@ void ADSCharacter::AttackReset()
 
 void ADSCharacter::Attack()
 {
+	if(HealthComponent->HasStamina() && !HealthComponent->HasStaminaToAttack()) return;
+	
 	if(bCanAttack == false)
 	{
 		bWantsToAttack = true;		
@@ -215,6 +219,8 @@ void ADSCharacter::Attack()
 	}
 	if(bEquippedWeapon && bCanAttack && !bIsRolling)
 	{
+		HealthComponent->DecreaseStamina(AttackCost);
+		
 		bCanAttack = false;
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		if(AnimInstance && AttackMontage)
@@ -241,6 +247,7 @@ void ADSCharacter::Attack()
 
 void ADSCharacter::LockTarget()
 {
+	
 	if(Target == nullptr && !bTargetLocked)
 	{
 		TArray<AActor*> Actors;
@@ -301,6 +308,27 @@ void ADSCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
+	if(!bIsRolling && bCanAttack && !bWantsToAttack && !bIsSprinting)
+	{
+		if(GetVelocity().Length() == 0.f)
+		{
+			HealthComponent->DecreaseStamina(-.5f);
+		}
+		else
+		{
+			HealthComponent->DecreaseStamina(-.1f);
+		}
+	}
+	
+	if(bIsSprinting)
+	{
+		HealthComponent->DecreaseStamina(.5f);
+		if(!HealthComponent->HasStamina())
+		{
+			EndSprint();
+		}
+	}
+	
 	LookAtSmooth();
 	
 }
@@ -314,6 +342,7 @@ void ADSCharacter::LookAtSmooth()
 		const AEnemyBase* EnemyTarget = Cast<AEnemyBase>(Target);
 		if(!EnemyTarget->GetIsAlive())
 		{
+			EnemyTarget->HealthBarComponent->SetVisibility(false);
 			Target = nullptr;
 			bTargetLocked = false;
 			bUseControllerRotationYaw = false;
@@ -327,7 +356,7 @@ void ADSCharacter::LookAtSmooth()
 		const FVector TargetLoc = Target->GetActorLocation();
 		const FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(ActorLoc, TargetLoc);
 		
-		const FRotator SmoothedRotation = FMath::Lerp(GetActorRotation(), LookAtRotation, 40.f * GetWorld()->DeltaTimeSeconds);
+		const FRotator SmoothedRotation = FMath::Lerp(GetActorRotation(), LookAtRotation, 5.f * GetWorld()->DeltaTimeSeconds);
 		Controller->SetControlRotation(SmoothedRotation);
 		
 		if((TargetLoc - ActorLoc).Length() > 2 * DistanceToLock)
@@ -404,16 +433,14 @@ void ADSCharacter::AttackTrace()
 	}
 	
 	FHitResult Hit;
-
 	
-	ECollisionChannel Channel = ECollisionChannel::ECC_Pawn;
 	
 	UKismetSystemLibrary::SphereTraceSingle(
 		this,
 		Start,
 		End,
 		12.f,
-		TraceTypeQuery1,
+		static_cast<ETraceTypeQuery>(static_cast<EObjectTypeQuery>(ECollisionChannel::ECC_Pawn)),
 		false,
 		ActorsToIgnore,
 		EDrawDebugTrace::None,
