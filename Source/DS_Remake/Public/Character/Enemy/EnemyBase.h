@@ -87,6 +87,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void DisableWeaponCollision();
 
+	void DirectionalHitReact(const FVector& ImpactPoint);
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -102,10 +103,10 @@ protected:
 	UPROPERTY()
 	AActor* CombatTarget;
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditAnywhere)
 	double CombatRadius = 400.f;
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditAnywhere)
 	double AttackRadius = 150.f;
 
 	UPROPERTY(EditInstanceOnly, Category = "AI Navigation")
@@ -141,6 +142,12 @@ protected:
 	bool bCanAttack = true;
 
 	void LookAtSmooth();
+
+	UPROPERTY(EditDefaultsOnly)
+	UAnimMontage* HitReactMontage;
+
+	void PlayHitReactMontage(const FName& SectionName);
+
 	
 private:
 	UPROPERTY(EditDefaultsOnly)

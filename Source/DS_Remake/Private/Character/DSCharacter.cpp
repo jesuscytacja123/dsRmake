@@ -473,6 +473,7 @@ void ADSCharacter::AttackTrace()
 			AEnemyBase* TargetEnemy = Cast<AEnemyBase>(Hit.GetActor());
 			if(TargetEnemy)
 			{
+				TargetEnemy->DirectionalHitReact(Hit.ImpactPoint);
 				UGameplayStatics::ApplyDamage(TargetEnemy, Damage, Controller, this, UDamageType::StaticClass());
 				UGameplayStatics::SpawnEmitterAtLocation(this, TargetEnemy->GetHitParticles(), Hit.ImpactPoint);
 			}

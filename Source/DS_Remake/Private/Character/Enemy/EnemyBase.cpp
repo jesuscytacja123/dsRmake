@@ -38,6 +38,7 @@ AEnemyBase::AEnemyBase()
 	WeaponMesh->SetupAttachment(GetMesh(), FName("Weapon"));
 	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	WeaponMesh->SetCollisionResponseToAllChannels(ECR_Overlap);
+	WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 
 	StartCollision = CreateDefaultSubobject<USceneComponent>("Start");
 	StartCollision->SetupAttachment(WeaponMesh);
@@ -67,10 +68,6 @@ void AEnemyBase::CheckCombatTarget()
 	{
 		// Outside combat radius, lose interest
 		CombatTarget = nullptr;
-		if (HealthBarComponent)
-		{
-			HealthBarComponent->SetVisibility(false);
-		}
 		EnemyState = EEnemyState::EES_Patrolling;
 		GetCharacterMovement()->MaxWalkSpeed = 125.f;
 		MoveToTargetActor(PatrolTarget);
@@ -100,6 +97,49 @@ void AEnemyBase::StartTrace()
 	GetWorld()->GetTimerManager().SetTimer(TraceTimerHandle, this ,&AEnemyBase::AttackTrace, 0.01f, true);
 }
 
+void AEnemyBase::DirectionalHitReact(const FVector& ImpactPoint)
+{
+	const FVector Forward = GetActorForwardVector();
+	// Lower Impact Point to the Enemy's Actor Location Z
+	const FVector ImpactLowered(ImpactPoint.X, ImpactPoint.Y, GetActorLocation().Z);
+	const FVector ToHit = (ImpactLowered - GetActorLocation()).GetSafeNormal();
+
+	// Forward * ToHit = |Forward||ToHit| * cos(theta)
+	// |Forward| = 1, |ToHit| = 1, so Forward * ToHit = cos(theta)
+	const double CosTheta = FVector::DotProduct(Forward, ToHit);
+	// Take the inverse cosine (arc-cosine) of cos(theta) to get theta
+	double Theta = FMath::Acos(CosTheta);
+	// convert from radians to degrees
+	Theta = FMath::RadiansToDegrees(Theta);
+
+	// if CrossProduct points down, Theta should be negative
+	const FVector CrossProduct = FVector::CrossProduct(Forward, ToHit);
+	if (CrossProduct.Z < 0)
+	{
+		Theta *= -1.f;
+	}
+
+	FName Section("FromBack");
+
+	if (Theta >= -45.f && Theta < 45.f)
+	{
+		Section = FName("FromFront");
+	}
+
+	PlayHitReactMontage(Section);
+	
+}
+
+void AEnemyBase::PlayHitReactMontage(const FName& SectionName)
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && HitReactMontage)
+	{
+		AnimInstance->Montage_Play(HitReactMontage);
+		AnimInstance->Montage_JumpToSection(SectionName, HitReactMontage);
+	}
+}
+
 
 void AEnemyBase::AttackTrace()
 {
@@ -125,7 +165,7 @@ void AEnemyBase::AttackTrace()
 		static_cast<ETraceTypeQuery>(static_cast<EObjectTypeQuery>(ECollisionChannel::ECC_WorldDynamic)),
 		false,
 		ActorsToIgnore,
-		EDrawDebugTrace::ForOneFrame,
+		EDrawDebugTrace::None,
 		Hit,
 		true
 		);
@@ -357,6 +397,12 @@ void AEnemyBase::Die()
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
 	GetMesh()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
 	GetMesh()->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Block);
+
+	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
+	WeaponMesh->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+	WeaponMesh->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Block);
+	WeaponMesh->SetSimulatePhysics(true);
+	WeaponMesh->SetEnableGravity(true);
 }
 
 float AEnemyBase::GetGroundVelocity()
@@ -383,6 +429,7 @@ float AEnemyBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent
 		CombatTarget = DamageCauser;
 		EnemyState = EEnemyState::EES_Chasing;
 	}
+	
 	if(HealthLeft <= 0.f)
 	{
 		Die();
