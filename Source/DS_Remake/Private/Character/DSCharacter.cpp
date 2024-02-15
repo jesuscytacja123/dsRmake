@@ -62,8 +62,6 @@ ADSCharacter::ADSCharacter()
 	/*End*/
 
 	
-
-	
 	/*Character Mesh Collision Presets*/
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	GetMesh()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
@@ -85,7 +83,7 @@ ADSCharacter::ADSCharacter()
 	GetCharacterMovement()->JumpZVelocity = 600.f;
 	GetCharacterMovement()->AirControl = 0.2f;
 
-	GetCharacterMovement()->MaxWalkSpeed = 450.f;
+	GetCharacterMovement()->MaxWalkSpeed = 350.f;
 	
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 
@@ -252,7 +250,7 @@ void ADSCharacter::LockTarget()
 	{
 		TArray<AActor*> Actors;
 		
-		const FVector Start = GetActorLocation();
+		const FVector Start = FollowCamera->GetComponentLocation();
 		
 		const FVector End = Start + (FollowCamera->GetForwardVector() * DistanceToLock);
 		TArray<TEnumAsByte<EObjectTypeQuery>> Types;
@@ -265,18 +263,18 @@ void ADSCharacter::LockTarget()
 		this,
 		Start,
 		End,
-		400.f,
+		100.f,
 		Types,
 		false,
 		ToIgnore,
-		EDrawDebugTrace::None,
+		EDrawDebugTrace::ForDuration,
 		Hit,
 		true
 		);
 		
 		if(Hit.bBlockingHit)
 		{
-			if(Cast<ACharacter>(Hit.GetActor()))
+			if(AEnemyBase* Enemy = Cast<AEnemyBase>(Hit.GetActor()))
 			{
 				Target = Hit.GetActor();
 			}
@@ -284,6 +282,11 @@ void ADSCharacter::LockTarget()
 		
 		if(Target != nullptr)
 		{
+			if(AEnemyBase* Enemy = Cast<AEnemyBase>(Hit.GetActor()))
+			{
+				Enemy->LockDot->SetVisibility(true);
+			}
+			
 			bTargetLocked = true;
 			
 			bUseControllerRotationYaw = true;
@@ -294,6 +297,10 @@ void ADSCharacter::LockTarget()
 	}
 	else
 	{
+		if(AEnemyBase* Enemy = Cast<AEnemyBase>(Target))
+		{
+			Enemy->LockDot->SetVisibility(false);
+		}
 		Target = nullptr;
 		bTargetLocked = false;
 
@@ -342,6 +349,7 @@ void ADSCharacter::LookAtSmooth()
 		const AEnemyBase* EnemyTarget = Cast<AEnemyBase>(Target);
 		if(!EnemyTarget->GetIsAlive())
 		{
+			EnemyTarget->LockDot->SetVisibility(false);
 			EnemyTarget->HealthBarComponent->SetVisibility(false);
 			Target = nullptr;
 			bTargetLocked = false;
@@ -356,7 +364,7 @@ void ADSCharacter::LookAtSmooth()
 		const FVector TargetLoc = Target->GetActorLocation();
 		const FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(ActorLoc, TargetLoc);
 		
-		const FRotator SmoothedRotation = FMath::Lerp(GetActorRotation(), LookAtRotation, 5.f * GetWorld()->DeltaTimeSeconds);
+		const FRotator SmoothedRotation = FMath::Lerp(GetActorRotation(), LookAtRotation, 10.f * GetWorld()->DeltaTimeSeconds);
 		Controller->SetControlRotation(SmoothedRotation);
 		
 		if((TargetLoc - ActorLoc).Length() > 2 * DistanceToLock)
@@ -399,7 +407,6 @@ void ADSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 void ADSCharacter::EnableWeaponCollision()
 {
 	BoxCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	IgnoreActors.Empty();	
 }
 
 void ADSCharacter::DisableWeaponCollision()
@@ -407,6 +414,18 @@ void ADSCharacter::DisableWeaponCollision()
 	BoxCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	IgnoreActors.Empty();
 	GetWorld()->GetTimerManager().ClearTimer(TraceTimerHandle);
+}
+
+void ADSCharacter::EnableRollCollision()
+{
+	GetWeaponMesh()->SetGenerateOverlapEvents(true);
+	GetCapsuleComponent()->SetGenerateOverlapEvents(true);
+}
+
+void ADSCharacter::DisableRollCollision()
+{
+	GetWeaponMesh()->SetGenerateOverlapEvents(false);
+	GetCapsuleComponent()->SetGenerateOverlapEvents(false);
 }
 
 bool ADSCharacter::GetIsDead()

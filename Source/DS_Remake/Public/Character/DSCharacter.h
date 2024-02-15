@@ -33,6 +33,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void DisableWeaponCollision();
 
+	UFUNCTION(BlueprintCallable)
+	void EnableRollCollision();
+
+	UFUNCTION(BlueprintCallable)
+	void DisableRollCollision();
+
 	/*Combat Interface Functions*/
 
 	virtual bool GetIsDead() override;
@@ -163,7 +169,7 @@ private:
 
 	bool bDead = false;
 	
-	float DistanceToLock = 800.f;
+	float DistanceToLock = 2500.f;
 	
 	TObjectPtr<AActor> Target;
 	
@@ -189,7 +195,8 @@ private:
 
 	void LookAtSmooth();
 
-	
+	UPROPERTY(EditDefaultsOnly)
+	UParticleSystem* Particles;
 	
 public:
 	
@@ -217,4 +224,6 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE UHealthComponent* GetHealthComponent() const { return HealthComponent; }
+
+	FORCEINLINE UParticleSystem* GetHitParticles() const { return Particles ;}
 };
