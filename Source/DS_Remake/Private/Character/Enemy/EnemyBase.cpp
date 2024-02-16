@@ -140,6 +140,16 @@ void AEnemyBase::PlayHitReactMontage(const FName& SectionName)
 	}
 }
 
+void AEnemyBase::PlayHeavyHitReactMontage()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && HeavyHitMontage)
+	{
+		AnimInstance->Montage_Play(HeavyHitMontage);
+		AnimInstance->Montage_JumpToSection(FName("HeavyHit"), HeavyHitMontage);
+	}
+}
+
 
 void AEnemyBase::AttackTrace()
 {
@@ -398,11 +408,12 @@ void AEnemyBase::Die()
 	GetMesh()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
 	GetMesh()->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Block);
 
+	WeaponMesh->SetSimulatePhysics(true);
+	WeaponMesh->SetEnableGravity(true);
 	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
 	WeaponMesh->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
 	WeaponMesh->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Block);
-	WeaponMesh->SetSimulatePhysics(true);
-	WeaponMesh->SetEnableGravity(true);
+	
 }
 
 float AEnemyBase::GetGroundVelocity()

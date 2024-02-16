@@ -63,6 +63,12 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Gameplay|Costs")
 	float RollCost = 30.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly,Category="Gameplay|Damage")
+	float HeavyAttackDamage = 44.f;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly,Category="Gameplay|Costs")
+	float HeavyAttackCost = 35.f;
 	/*------------------*/
 
 	
@@ -105,7 +111,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category="Montage|HitReact")
 	UAnimMontage* HitReactMontage;
-
+	
+	UPROPERTY(EditDefaultsOnly, Category="Montage|HitReact")
+	UAnimMontage* HeavyAttackMontage;
 	
 	//related to montage
 	FTimerHandle DelayAnim;
@@ -136,6 +144,8 @@ protected:
 	void AttackReset();
 
 	bool bCanAttack = true;
+
+	bool bHeavyAttack = false;
 
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UBoxComponent> BoxCollision;
@@ -226,4 +236,6 @@ public:
 	FORCEINLINE UHealthComponent* GetHealthComponent() const { return HealthComponent; }
 
 	FORCEINLINE UParticleSystem* GetHitParticles() const { return Particles ;}
+
+	FORCEINLINE bool GetIsHeavyAttack() const { return bHeavyAttack; }
 };

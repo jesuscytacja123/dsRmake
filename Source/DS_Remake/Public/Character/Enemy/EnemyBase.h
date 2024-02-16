@@ -68,6 +68,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="Combat")
 	UAnimMontage* AttackMontage;
 
+	UPROPERTY(EditDefaultsOnly, Category="HitReact")
+	UAnimMontage* HeavyHitMontage;
+
 	UPROPERTY(EditDefaultsOnly, Category="Combat")
 	TArray<FName> AttackNames;
 
@@ -88,6 +91,8 @@ public:
 	void DisableWeaponCollision();
 
 	void DirectionalHitReact(const FVector& ImpactPoint);
+
+	void PlayHeavyHitReactMontage();
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -148,7 +153,6 @@ protected:
 
 	void PlayHitReactMontage(const FName& SectionName);
 
-	
 private:
 	UPROPERTY(EditDefaultsOnly)
 	UPawnSensingComponent* PawnSensing;

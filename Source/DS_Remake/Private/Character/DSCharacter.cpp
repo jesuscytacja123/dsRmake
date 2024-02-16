@@ -91,15 +91,12 @@ ADSCharacter::ADSCharacter()
 
 }
 
-
-
 // Called when the game starts or when spawned
 void ADSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
 }
-
 
 void ADSCharacter::Move(const FInputActionValue& Value)
 {
@@ -191,6 +188,7 @@ void ADSCharacter::Equip()
 
 void ADSCharacter::AttackReset()
 {
+	bHeavyAttack = false;
 	bCanAttack = true;
 	IgnoreActors.Empty();
 	if(bWantsToAttack)
@@ -201,7 +199,6 @@ void ADSCharacter::AttackReset()
 		Attack();
 	}
 }
-
 
 void ADSCharacter::Attack()
 {
@@ -217,12 +214,34 @@ void ADSCharacter::Attack()
 	}
 	if(bEquippedWeapon && bCanAttack && !bIsRolling)
 	{
-		HealthComponent->DecreaseStamina(AttackCost);
-		
 		bCanAttack = false;
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if(AnimInstance && HeavyAttackMontage && bIsSprinting)
+		{
+			
+			HealthComponent->DecreaseStamina(HeavyAttackCost);
+
+			
+			FName SectionName = FName("");
+			if(bIsSprinting && GetMovementComponent()->Velocity.Length() == 0.f)
+			{
+				SectionName = FName("Heavy_Start");
+			}
+			else if (bIsSprinting && GetMovementComponent()->Velocity.Length() > 0.f)
+			{
+				SectionName = FName("Heavy_2");
+			}
+			
+			AnimInstance->Montage_Play(HeavyAttackMontage);
+			AnimInstance->Montage_JumpToSection(SectionName, HeavyAttackMontage);
+			StartTrace();
+			bHeavyAttack = true;
+			GetWorld()->GetTimerManager().SetTimer(AttackDelay, this, &ADSCharacter::AttackReset, 1.5f, false);	
+			return;
+		}
 		if(AnimInstance && AttackMontage)
 		{
+			HealthComponent->DecreaseStamina(AttackCost);
 			int32 RandNum = FMath::RandRange(0, (AttacksArray.Num() - 1) );
 			
 			/*
@@ -319,7 +338,7 @@ void ADSCharacter::Tick(float DeltaTime)
 	{
 		if(GetVelocity().Length() == 0.f)
 		{
-			HealthComponent->DecreaseStamina(-.5f);
+			HealthComponent->DecreaseStamina(-1.f);
 		}
 		else
 		{
@@ -327,7 +346,7 @@ void ADSCharacter::Tick(float DeltaTime)
 		}
 	}
 	
-	if(bIsSprinting)
+	if(bIsSprinting && GetMovementComponent()->Velocity.Length() > 0.f)
 	{
 		HealthComponent->DecreaseStamina(.5f);
 		if(!HealthComponent->HasStamina())
@@ -473,8 +492,20 @@ void ADSCharacter::AttackTrace()
 			AEnemyBase* TargetEnemy = Cast<AEnemyBase>(Hit.GetActor());
 			if(TargetEnemy)
 			{
+				
 				TargetEnemy->DirectionalHitReact(Hit.ImpactPoint);
-				UGameplayStatics::ApplyDamage(TargetEnemy, Damage, Controller, this, UDamageType::StaticClass());
+				
+				
+				if(bHeavyAttack)
+				{
+					UGameplayStatics::ApplyDamage(TargetEnemy, HeavyAttackDamage, Controller, this, UDamageType::StaticClass());
+				}
+				else
+				{
+					UGameplayStatics::ApplyDamage(TargetEnemy, Damage, Controller, this, UDamageType::StaticClass());
+				}
+				// Heal's character on dealing damage to enemy's
+				HealthComponent->ReceiveDamage(-10.f);
 				UGameplayStatics::SpawnEmitterAtLocation(this, TargetEnemy->GetHitParticles(), Hit.ImpactPoint);
 			}
 			IgnoreActors.AddUnique(Hit.GetActor());
