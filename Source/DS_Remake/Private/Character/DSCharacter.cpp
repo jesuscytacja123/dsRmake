@@ -7,6 +7,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "Camera/CameraComponent.h"
 #include "Character/Enemy/EnemyBase.h"
+#include "Character/Enemy/EnemyBoss.h"
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/HealthComponent.h"
@@ -17,6 +18,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Character/Enemy/EnemyBoss.h"
 
 // Sets default values
 ADSCharacter::ADSCharacter()
@@ -44,8 +46,6 @@ ADSCharacter::ADSCharacter()
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>("HealthComp");
 
 	/*----------------*/
-
-	
 	
 	BoxTraceStart = CreateDefaultSubobject<USceneComponent>("StartTrace");
 	BoxTraceStart->SetupAttachment(WeaponMesh);
@@ -297,6 +297,10 @@ void ADSCharacter::LockTarget()
 			{
 				Target = Hit.GetActor();
 			}
+			if(	AEnemyBoss* Boss = Cast<AEnemyBoss>(Hit.GetActor()))
+			{
+				Target = Hit.GetActor();
+			}
 		}
 		
 		if(Target != nullptr)
@@ -304,6 +308,11 @@ void ADSCharacter::LockTarget()
 			if(AEnemyBase* Enemy = Cast<AEnemyBase>(Hit.GetActor()))
 			{
 				Enemy->LockDot->SetVisibility(true);
+			}
+		
+			if(	AEnemyBoss* Boss = Cast<AEnemyBoss>(Hit.GetActor()))
+			{
+				Boss->LockDot->SetVisibility(true);
 			}
 			
 			bTargetLocked = true;
@@ -319,6 +328,10 @@ void ADSCharacter::LockTarget()
 		if(AEnemyBase* Enemy = Cast<AEnemyBase>(Target))
 		{
 			Enemy->LockDot->SetVisibility(false);
+		}
+		if(	AEnemyBoss* Boss = Cast<AEnemyBoss>(Target))
+		{
+			Boss->LockDot->SetVisibility(false);
 		}
 		Target = nullptr;
 		bTargetLocked = false;
@@ -366,7 +379,8 @@ void ADSCharacter::LookAtSmooth()
 	if(Target != nullptr && bTargetLocked && !GetCharacterMovement()->IsFalling() && bCanAttack)
 	{
 		const AEnemyBase* EnemyTarget = Cast<AEnemyBase>(Target);
-		if(!EnemyTarget->GetIsAlive())
+		const AEnemyBoss* EnemyBoss = Cast<AEnemyBoss>(Target);
+		if(EnemyTarget && !EnemyTarget->GetIsAlive())
 		{
 			EnemyTarget->LockDot->SetVisibility(false);
 			EnemyTarget->HealthBarComponent->SetVisibility(false);
@@ -376,6 +390,18 @@ void ADSCharacter::LookAtSmooth()
 			CameraBoom->bInheritPitch = true;
 			GetCharacterMovement()->bOrientRotationToMovement = true;
 			
+			return;
+		}
+		if(EnemyBoss && !EnemyBoss->GetIsAlive())
+		{
+			EnemyBoss->LockDot->SetVisibility(false);
+			//EnemyBoss->HealthBarComponent->SetVisibility(false);
+			Target = nullptr;
+			bTargetLocked = false;
+			bUseControllerRotationYaw = false;
+			CameraBoom->bInheritPitch = true;
+			GetCharacterMovement()->bOrientRotationToMovement = true;
+
 			return;
 		}
 

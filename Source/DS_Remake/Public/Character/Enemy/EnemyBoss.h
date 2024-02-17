@@ -3,9 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Components/HealthComponent.h"
 #include "GameFramework/Character.h"
 #include "EnemyBoss.generated.h"
 
+class UPawnSensingComponent;
+class UWidgetComponent;
 class UHealthComponent;
 class AAIController;
 
@@ -22,17 +25,34 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UWidgetComponent> LockDot;
+
+	UFUNCTION()
+	void PawnSeen(APawn* Pawn);
+
 protected:
 	
 	virtual void BeginPlay() override;
 
 	TObjectPtr<AAIController> BossController;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UHealthComponent> HealthComponent;
 
+	UPROPERTY()
+	TObjectPtr<AActor> CombatCharacter;
+
+	UPROPERTY(EditDefaultsOnly)
+	UPawnSensingComponent* PawnSensingComponent;
 private:
 
+	UPROPERTY(EditDefaultsOnly, Category="Combat")
+	UAnimMontage* AttackMontage;
 	
+
+	void MoveToTargetActor(AActor* Target);
 public:	
 
+	FORCEINLINE bool GetIsAlive() const { return HealthComponent->IsAlive(); }
 };

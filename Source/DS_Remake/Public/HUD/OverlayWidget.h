@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "OverlayWidget.generated.h"
 
+class UTextBlock;
 class UProgressBar;
 /**
  * 
@@ -21,11 +22,27 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetStaminaBarPercent(float Percent);
+
+	UFUNCTION(BlueprintCallable)
+	void SetBossHealthBarPercent(float Percent);
+
+	UFUNCTION(BlueprintCallable)
+	void HideBossOverlays();
+
+	UFUNCTION(BlueprintCallable)
+	void ShowBossOverlays();
 	
 	UPROPERTY(meta=(BindWidget))
 	UProgressBar* HealthBar;
 	
 	UPROPERTY(meta=(BindWidget))
 	UProgressBar* StaminaBar;
+
+	UPROPERTY(meta=(BindWidget))
+	UProgressBar* HealthBarBoss;
+	
+	UPROPERTY(meta=(BindWidget))
+	UTextBlock* BossText;
+
 };
 
