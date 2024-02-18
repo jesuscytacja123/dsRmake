@@ -37,7 +37,7 @@ protected:
 
 	TObjectPtr<AAIController> BossController;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UHealthComponent> HealthComponent;
 
 	UPROPERTY()
@@ -45,13 +45,53 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly)
 	UPawnSensingComponent* PawnSensingComponent;
+
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<USceneComponent> StartCollision;
+
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<USceneComponent> EndCollision;
+
+	void AttackReset();
 private:
 
 	UPROPERTY(EditDefaultsOnly, Category="Combat")
 	UAnimMontage* AttackMontage;
-	
 
+	const FName Attack1 = FName("Swing1");
+	const float AttackDamage1 = 35.f;
+	
+	const FName Attack2 = FName("Swing2");
+	const float AttackDamage2 = 31.f;
+	
+	const FName Attack3 = FName("Swing3");
+	const float AttackDamage3 = 40.f;
+	
+	FName LastAttack = FName("");
+	
+	FTimerHandle AttackDelay;
+
+	FTimerHandle TraceTimerHandle;
+
+	bool InTargetRange(AActor* Target, double Radius);
 	void MoveToTargetActor(AActor* Target);
+	void LookAtSmooth();
+	void PlayAttackMontage();
+	void AttackTrace();
+	void StartTrace();
+	
+	bool bCanAttack = true;
+	
+	UPROPERTY(EditDefaultsOnly)
+	float AttackSpeed = 2.f;
+	
+	UPROPERTY(EditAnywhere)
+	double CombatRadius = 400.f;
+
+	UPROPERTY(EditAnywhere)
+	double AttackRadius = 150.f;
+
+	TArray<AActor*> IgnoreActors;
 public:	
 
 	FORCEINLINE bool GetIsAlive() const { return HealthComponent->IsAlive(); }

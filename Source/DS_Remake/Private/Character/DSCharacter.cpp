@@ -299,6 +299,7 @@ void ADSCharacter::LockTarget()
 			}
 			if(	AEnemyBoss* Boss = Cast<AEnemyBoss>(Hit.GetActor()))
 			{
+				EnemyBossLockedSignature.Broadcast(Boss);
 				Target = Hit.GetActor();
 			}
 		}

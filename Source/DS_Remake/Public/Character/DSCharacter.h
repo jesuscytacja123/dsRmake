@@ -9,6 +9,9 @@
 #include "Interfaces/CombatInterface.h"
 #include "DSCharacter.generated.h"
 
+class AEnemyBoss;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemyBossLocked, AEnemyBoss*, EnemyBoss);
 
 class USphereComponent;
 class UHealthComponent;
@@ -174,6 +177,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Combat")
 	USkeletalMeshComponent* WeaponMesh;
 
+	UPROPERTY(BlueprintAssignable)
+	FOnEnemyBossLocked EnemyBossLockedSignature;
 private:
 	TArray<AActor*> IgnoreActors;
 

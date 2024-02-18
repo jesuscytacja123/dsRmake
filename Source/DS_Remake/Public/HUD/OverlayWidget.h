@@ -38,10 +38,10 @@ public:
 	UPROPERTY(meta=(BindWidget))
 	UProgressBar* StaminaBar;
 
-	UPROPERTY(meta=(BindWidget))
+	UPROPERTY(BlueprintReadWrite, meta=(BindWidget))
 	UProgressBar* HealthBarBoss;
 	
-	UPROPERTY(meta=(BindWidget))
+	UPROPERTY(BlueprintReadWrite, meta=(BindWidget))
 	UTextBlock* BossText;
 
 };
