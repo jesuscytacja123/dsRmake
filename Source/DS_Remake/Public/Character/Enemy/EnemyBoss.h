@@ -31,6 +31,7 @@ public:
 	UFUNCTION()
 	void PawnSeen(APawn* Pawn);
 
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 protected:
 	
 	virtual void BeginPlay() override;
@@ -47,14 +48,18 @@ protected:
 	UPawnSensingComponent* PawnSensingComponent;
 
 	UPROPERTY(EditDefaultsOnly)
-	TObjectPtr<USceneComponent> StartCollision;
+	TObjectPtr<USceneComponent> CollisionStart;
 
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<USceneComponent> EndCollision;
 
 	void AttackReset();
-private:
 
+	UPROPERTY(EditDefaultsOnly, Category="FX")
+	TObjectPtr<UParticleSystem> HammerParticles;
+	
+private:
+	
 	UPROPERTY(EditDefaultsOnly, Category="Combat")
 	UAnimMontage* AttackMontage;
 

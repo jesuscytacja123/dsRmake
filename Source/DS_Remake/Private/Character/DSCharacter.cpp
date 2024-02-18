@@ -286,7 +286,7 @@ void ADSCharacter::LockTarget()
 		Types,
 		false,
 		ToIgnore,
-		EDrawDebugTrace::ForDuration,
+		EDrawDebugTrace::None,
 		Hit,
 		true
 		);
@@ -517,12 +517,10 @@ void ADSCharacter::AttackTrace()
 		if(Hit.GetActor())
 		{
 			AEnemyBase* TargetEnemy = Cast<AEnemyBase>(Hit.GetActor());
+			AEnemyBoss* EnemyBoss = Cast<AEnemyBoss>(Hit.GetActor());
 			if(TargetEnemy)
 			{
-				
 				TargetEnemy->DirectionalHitReact(Hit.ImpactPoint);
-				
-				
 				if(bHeavyAttack)
 				{
 					UGameplayStatics::ApplyDamage(TargetEnemy, HeavyAttackDamage, Controller, this, UDamageType::StaticClass());
@@ -534,6 +532,17 @@ void ADSCharacter::AttackTrace()
 				// Heal's character on dealing damage to enemy's
 				HealthComponent->ReceiveDamage(-10.f);
 				UGameplayStatics::SpawnEmitterAtLocation(this, TargetEnemy->GetHitParticles(), Hit.ImpactPoint);
+			}
+			if(EnemyBoss)
+			{
+				if(bHeavyAttack)
+				{
+					UGameplayStatics::ApplyDamage(EnemyBoss, HeavyAttackDamage, Controller, this, UDamageType::StaticClass());
+				}
+				else
+				{
+					UGameplayStatics::ApplyDamage(EnemyBoss, Damage, Controller, this, UDamageType::StaticClass());
+				}
 			}
 			IgnoreActors.AddUnique(Hit.GetActor());
 		}

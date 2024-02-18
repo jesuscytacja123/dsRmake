@@ -30,6 +30,12 @@ AEnemyBoss::AEnemyBoss()
 	GetCharacterMovement()->MaxWalkSpeed = 250.f;
 
 	PawnSensingComponent = CreateDefaultSubobject<UPawnSensingComponent>("PawnSensing");
+
+	CollisionStart = CreateDefaultSubobject<USceneComponent>("Start");
+	CollisionStart->SetupAttachment(GetMesh(), FName("HammerSocket"));
+	
+	EndCollision = CreateDefaultSubobject<USceneComponent>("End");
+	EndCollision->SetupAttachment(GetMesh(), FName("HammerSocket"));
 	
 }
 
@@ -39,6 +45,20 @@ void AEnemyBoss::PawnSeen(APawn* Pawn)
 	{
 		CombatCharacter = Pawn;
 	}
+}
+
+float AEnemyBoss::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
+	AActor* DamageCauser)
+{
+	
+	float HealthLeft = HealthComponent->ReceiveDamage(DamageAmount);
+	
+	if(HealthLeft <= 0.f)
+	{
+		Destroy();
+	}
+
+	return 0.f;
 }
 
 
@@ -58,11 +78,9 @@ void AEnemyBoss::StartTrace()
 
 void AEnemyBoss::AttackTrace()
 {
-	// start and end are unset, i have to use different method, because mesh doesnt have mesh
-	// and because of that attaching it to RootComponent doesnt work
-	const FVector Start = StartCollision->GetComponentLocation();
+	const FVector Start = CollisionStart->GetComponentLocation();
 	const FVector End = EndCollision->GetComponentLocation();
-
+	
 	TArray<AActor*> ActorsToIgnore;
 	ActorsToIgnore.Add(this);
 
@@ -70,8 +88,22 @@ void AEnemyBoss::AttackTrace()
 	{
 		ActorsToIgnore.AddUnique(Actor);
 	}
-	
+
 	FHitResult Hit;
+	
+	UKismetSystemLibrary::SphereTraceSingle(
+		this,
+		Start,
+		End,
+		20.f,
+		static_cast<ETraceTypeQuery>(static_cast<EObjectTypeQuery>(ECollisionChannel::ECC_Pawn)),
+		false,
+		ActorsToIgnore,
+		EDrawDebugTrace::ForDuration,
+		Hit,
+		true
+		);
+
 	
 	if(Hit.GetActor())
 	{
@@ -123,6 +155,11 @@ void AEnemyBoss::BeginPlay()
 
 	LockDot->SetVisibility(false);
 	BossController = Cast<AAIController>(GetController());
+
+	if(HammerParticles)
+	{
+		UGameplayStatics::SpawnEmitterAttached(HammerParticles, GetMesh(), FName("FX_Trail_R_01"));
+	}
 
 	PawnSensingComponent->OnSeePawn.AddDynamic(this, &AEnemyBoss::AEnemyBoss::PawnSeen);
 	
