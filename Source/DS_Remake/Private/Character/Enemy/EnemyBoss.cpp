@@ -50,8 +50,7 @@ void AEnemyBoss::PawnSeen(APawn* Pawn)
 float AEnemyBoss::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
 	AActor* DamageCauser)
 {
-	
-	float HealthLeft = HealthComponent->ReceiveDamage(DamageAmount);
+	const float HealthLeft = HealthComponent->ReceiveDamage(DamageAmount);
 	
 	if(HealthLeft <= 0.f)
 	{
@@ -60,7 +59,6 @@ float AEnemyBoss::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent
 
 	return 0.f;
 }
-
 
 bool AEnemyBoss::InTargetRange(AActor* Target, double Radius)
 {
@@ -99,7 +97,7 @@ void AEnemyBoss::AttackTrace()
 		static_cast<ETraceTypeQuery>(static_cast<EObjectTypeQuery>(ECollisionChannel::ECC_Pawn)),
 		false,
 		ActorsToIgnore,
-		EDrawDebugTrace::ForDuration,
+		EDrawDebugTrace::None,
 		Hit,
 		true
 		);
@@ -169,6 +167,7 @@ void AEnemyBoss::AttackReset()
 {
 	bCanAttack = true;
 	IgnoreActors.Empty();
+	GetWorldTimerManager().ClearTimer(TraceTimerHandle);
 }
 
 void AEnemyBoss::Tick(float DeltaTime)

@@ -88,7 +88,7 @@ private:
 	bool bCanAttack = true;
 	
 	UPROPERTY(EditDefaultsOnly)
-	float AttackSpeed = 2.f;
+	float AttackSpeed = 4.f;
 	
 	UPROPERTY(EditAnywhere)
 	double CombatRadius = 400.f;

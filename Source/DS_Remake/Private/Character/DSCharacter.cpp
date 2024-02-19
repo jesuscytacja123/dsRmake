@@ -499,7 +499,6 @@ void ADSCharacter::AttackTrace()
 	
 	FHitResult Hit;
 	
-	
 	UKismetSystemLibrary::SphereTraceSingle(
 		this,
 		Start,
@@ -512,7 +511,6 @@ void ADSCharacter::AttackTrace()
 		Hit,
 		true
 		);
-
 	
 		if(Hit.GetActor())
 		{
@@ -530,7 +528,7 @@ void ADSCharacter::AttackTrace()
 					UGameplayStatics::ApplyDamage(TargetEnemy, Damage, Controller, this, UDamageType::StaticClass());
 				}
 				// Heal's character on dealing damage to enemy's
-				HealthComponent->ReceiveDamage(-10.f);
+				HealthComponent->ReceiveDamage(-15.f);
 				UGameplayStatics::SpawnEmitterAtLocation(this, TargetEnemy->GetHitParticles(), Hit.ImpactPoint);
 			}
 			if(EnemyBoss)
@@ -543,6 +541,7 @@ void ADSCharacter::AttackTrace()
 				{
 					UGameplayStatics::ApplyDamage(EnemyBoss, Damage, Controller, this, UDamageType::StaticClass());
 				}
+				HealthComponent->ReceiveDamage(-15.f);
 			}
 			IgnoreActors.AddUnique(Hit.GetActor());
 		}
@@ -585,5 +584,3 @@ float ADSCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEve
 
 	return 0.f;
 }
-
-
