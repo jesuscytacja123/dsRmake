@@ -356,7 +356,7 @@ void ADSCharacter::Tick(float DeltaTime)
 		}
 		else
 		{
-			HealthComponent->DecreaseStamina(-.1f);
+			HealthComponent->DecreaseStamina(-.5f);
 		}
 	}
 	

@@ -401,6 +401,8 @@ void AEnemyBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent
 
 void AEnemyBase::Die()
 {
+	GetCharacterMovement()->StopMovementImmediately();
+	
 	SetLifeSpan(10.f);
 	GetMesh()->SetSimulatePhysics(true);
 	GetMesh()->SetEnableGravity(true);

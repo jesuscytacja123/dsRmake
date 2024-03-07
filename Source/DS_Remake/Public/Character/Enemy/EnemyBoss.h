@@ -84,6 +84,7 @@ private:
 	void PlayAttackMontage();
 	void AttackTrace();
 	void StartTrace();
+	void Die();
 	
 	bool bCanAttack = true;
 	

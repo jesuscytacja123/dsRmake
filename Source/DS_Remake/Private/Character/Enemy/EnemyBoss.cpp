@@ -54,7 +54,7 @@ float AEnemyBoss::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent
 	
 	if(HealthLeft <= 0.f)
 	{
-		Destroy();
+		Die();
 	}
 
 	return 0.f;
@@ -71,6 +71,17 @@ bool AEnemyBoss::InTargetRange(AActor* Target, double Radius)
 void AEnemyBoss::StartTrace()
 {
 	GetWorld()->GetTimerManager().SetTimer(TraceTimerHandle, this ,&AEnemyBoss::AttackTrace, 0.01f, true);
+}
+
+void AEnemyBoss::Die()
+{
+	GetCharacterMovement()->DisableMovement();
+	SetLifeSpan(10.f);
+	
+	GetMesh()->SetSimulatePhysics(true);
+	GetMesh()->SetEnableGravity(true);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
+	GetMesh()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
 }
 
 
