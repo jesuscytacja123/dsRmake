@@ -80,7 +80,6 @@ private:
 
 	bool InTargetRange(AActor* Target, double Radius);
 	void MoveToTargetActor(AActor* Target);
-	void LookAtSmooth();
 	void PlayAttackMontage();
 	void AttackTrace();
 	void StartTrace();

@@ -83,7 +83,7 @@ ADSCharacter::ADSCharacter()
 	GetCharacterMovement()->JumpZVelocity = 600.f;
 	GetCharacterMovement()->AirControl = 0.2f;
 
-	GetCharacterMovement()->MaxWalkSpeed = 350.f;
+	GetCharacterMovement()->MaxWalkSpeed = NormalWalkSpeed;
 	
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 
@@ -123,6 +123,7 @@ void ADSCharacter::Look(const FInputActionValue& Value)
 
 void ADSCharacter::Sprint()
 {
+	bShouldRegenStamina = false;
 	if(!HealthComponent->HasStamina()) return;
 	bIsSprinting = true;
 	if(bTargetLocked)
@@ -130,19 +131,20 @@ void ADSCharacter::Sprint()
 		bUseControllerRotationYaw = true;
 		GetCharacterMovement()->bOrientRotationToMovement = false;
 	}
-	GetCharacterMovement()->MaxWalkSpeed = 550.f;
+	GetCharacterMovement()->MaxWalkSpeed = SprintWalkSpeed;
 	
 }
 
 void ADSCharacter::EndSprint()
 {
+	bShouldRegenStamina = true;
 	bIsSprinting = false;
 	if(bTargetLocked)
 	{
 		bUseControllerRotationYaw = true;
 		GetCharacterMovement()->bOrientRotationToMovement = false;
 	}
-	GetCharacterMovement()->MaxWalkSpeed = 450.f;
+	GetCharacterMovement()->MaxWalkSpeed = NormalWalkSpeed;
 }
 
 void ADSCharacter::EquipOrUnEquip()
@@ -350,7 +352,7 @@ void ADSCharacter::Tick(float DeltaTime)
 	
 	if(!bIsRolling && bCanAttack && !bWantsToAttack && !bIsSprinting)
 	{
-		if(GetVelocity().Length() == 0.f)
+		if(GetVelocity().Length() == 0.f && bShouldRegenStamina)
 		{
 			HealthComponent->DecreaseStamina(-1.f);
 		}
@@ -418,7 +420,7 @@ void ADSCharacter::LookAtSmooth()
 			Target = nullptr;
 			bTargetLocked = false;
 			bUseControllerRotationYaw = false;
-			CameraBoom->bInheritPitch = true;
+			//CameraBoom->bInheritPitch = true;
 			GetCharacterMovement()->bOrientRotationToMovement = true;
 		}
 		

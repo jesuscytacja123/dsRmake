@@ -188,7 +188,7 @@ void AEnemyBoss::Tick(float DeltaTime)
 	if(CombatCharacter != nullptr && Cast<ADSCharacter>(CombatCharacter))
 	{
 		MoveToTargetActor(CombatCharacter);
-		if(InTargetRange(CombatCharacter, 200.f))
+		if(InTargetRange(CombatCharacter, 300.f))
 		{
 			PlayAttackMontage();
 		}
@@ -206,6 +206,6 @@ void AEnemyBoss::MoveToTargetActor(AActor* Target)
 	if (BossController == nullptr || Target == nullptr) return;
 	FAIMoveRequest MoveRequest;
 	MoveRequest.SetGoalActor(Target);
-	MoveRequest.SetAcceptanceRadius(50.f);
+	MoveRequest.SetAcceptanceRadius(80.f);
 	BossController->MoveTo(MoveRequest);
 }

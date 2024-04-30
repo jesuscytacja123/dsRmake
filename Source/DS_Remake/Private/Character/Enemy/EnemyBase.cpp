@@ -243,6 +243,12 @@ void AEnemyBase::BeginPlay()
 		HealthBarComponent->SetHealthPercent(HealthComponent->GetHealthPercent());
 	}
 	LockDot->SetVisibility(false);
+
+	if (HealthBarComponent)
+	{
+		HealthBarComponent->SetVisibility(false);
+	}
+
 	EnemyController = Cast<AAIController>(GetController());
 
 	MoveToTargetActor(PatrolTarget);
@@ -402,19 +408,17 @@ void AEnemyBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent
 void AEnemyBase::Die()
 {
 	GetCharacterMovement()->StopMovementImmediately();
+
+	WeaponMesh->DestroyComponent();
+	HealthBarComponent->SetVisibility(false);
 	
-	SetLifeSpan(10.f);
+	SetLifeSpan(5.f);
 	GetMesh()->SetSimulatePhysics(true);
 	GetMesh()->SetEnableGravity(true);
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
 	GetMesh()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
 	GetMesh()->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Block);
 
-	WeaponMesh->SetSimulatePhysics(true);
-	WeaponMesh->SetEnableGravity(true);
-	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
-	WeaponMesh->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
-	WeaponMesh->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Block);
 	
 }
 
@@ -431,6 +435,8 @@ bool AEnemyBase::GetIsAlive() const
 float AEnemyBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
                              AActor* DamageCauser)
 {
+	HealthBarComponent->SetVisibility(true);
+
 	const float HealthLeft = HealthComponent->ReceiveDamage(DamageAmount);
 
 	if(HealthBarComponent)

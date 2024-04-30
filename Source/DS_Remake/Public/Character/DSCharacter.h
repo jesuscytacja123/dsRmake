@@ -177,9 +177,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Combat")
 	USkeletalMeshComponent* WeaponMesh;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Moving")
+	float NormalWalkSpeed = 300.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Moving")
+	float SprintWalkSpeed = 400.f;
+
 	UPROPERTY(BlueprintAssignable)
 	FOnEnemyBossLocked EnemyBossLockedSignature;
 private:
+
+	bool bShouldRegenStamina = true;
+
 	TArray<AActor*> IgnoreActors;
 
 	bool bDead = false;
